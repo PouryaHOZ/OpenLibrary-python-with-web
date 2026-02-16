@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جستجوی کتاب</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #f4f4f9; padding: 20px; text-align: center; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #results { margin-top: 20px; text-align: right; }
+        .book-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .loader { display: none; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📚 جستجوگر کتاب</h2>
+    <p>نام کتاب مورد نظرت رو وارد کن:</p>
+    
+    <input type="text" id="bookInput" placeholder="مثلاً: Sherlock Holmes">
+    <button onclick="searchBooks()">جستجو</button>
+
+    <div id="loader" class="loader">در حال جستجو...</div>
+    <div id="results"></div>
+</div>
+
+<script>
+    async function searchBooks() {
+        const query = document.getElementById('bookInput').value;
+        const resultsDiv = document.getElementById('results');
+        const loader = document.getElementById('loader');
+
+        if (!query) {
+            alert("لطفاً نام کتاب را وارد کنید!");
+            return;
+        }
+
+        // نمایش لودر و پاک کردن نتایج قبلی
+        loader.style.display = 'block';
+        resultsDiv.innerHTML = '';
+
+        try {
+            // فراخوانی API (استفاده از Open Library API)
+            const response = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            loader.style.display = 'none';
+
+            if (data.docs && data.docs.length > 0) {
+                // نمایش ۱۰ مورد اول
+                data.docs.slice(0, 10).forEach(book => {
+                    const div = document.createElement('div');
+                    div.className = 'book-item';
+                    div.innerHTML = `
+                        <strong>عنوان:</strong> ${book.title} <br>
+                        <strong>نویسنده:</strong> ${book.author_name ? book.author_name.join(', ') : 'نامشخص'} <br>
+                        <strong>سال انتشار:</strong> ${book.first_publish_year || 'نامشخص'}
+                    `;
+                    resultsDiv.appendChild(div);
+                });
+            } else {
+                resultsDiv.innerHTML = '<p>کتابی پیدا نشد.</p>';
+            }
+        } catch (error) {
+            loader.style.display = 'none';
+            resultsDiv.innerHTML = '<p style="color:red;">خطا در برقراری ارتباط با API!</p>';
+            console.error("Error fetching data:", error);
+        }
+    }
+</script>
+
+</body>
+</html>

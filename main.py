@@ -1,0 +1,89 @@
+import requests
+import csv
+
+from typing import Optional, TypedDict
+
+# Defining types
+
+type book_type = dict[str,Optional[str | int]]
+
+# Defining constant variables
+
+API_URL = 'https://openlibrary.org/search.json'
+LIMIT = 50
+
+# Getting user query
+def get_query() -> str:
+    query = ""
+
+    while True:
+        print("What is your query?")
+        query = input().strip()
+        if (len(query) >= 3):
+            return query
+        print("The query should be atleast 3 characters")
+
+
+# Using API to get response
+def fetch_API(query:str) -> Optional[list[book_type]]:
+
+    params = {
+        "limit": LIMIT,
+        "q":query
+    }
+
+    try:
+        respose = requests.get(API_URL, params=params)
+        data = respose.json()
+        books = data.get("docs", [])
+        return books
+    except:
+        raise ValueError("The API couldn't fetch with Openlibrary")
+
+
+# Filtering all the books to after year 2000
+def filtering(books: list[book_type]) -> Optional[list[book_type]]:
+    try:
+        return filter(lambda x: x.get("first_publish_year",0) > 2000, books)
+    except:
+        raise ValueError("There was an error while filtering the books (docs)")
+
+# Saving books to the books.csv file
+def save(books_filtered: list[book_type]) -> int:
+
+    # Choosing fields to save, and starting the counter
+    fields = ["title", "author_name", "first_publish_year"
+              #, "publisher"
+              ]
+    saved_books_num = 0
+
+    # Starting the process, using CSV writer
+    try:
+        with open("books.csv", "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fields)
+            writer.writeheader()
+
+            for book in books_filtered:
+                    row = {
+                        "title": book.get("title"),
+                        "author_name": ", ".join(book.get("author_name", "")),
+                        "first_publish_year": book.get("first_publish_year", ""),
+                        #"publisher": ", ".join(book.get("publisher"), ""),
+                    }
+                    writer.writerow(row)
+
+                    saved_books_num += 1
+    
+        return saved_books_num
+    except:
+        raise ValueError("There was an error saving filtered books (docs) into books.csv")
+
+# The main part
+if __name__ == "__main__":
+    q = get_query()
+    books = fetch_API(q)
+    filtered_books = filtering(books)
+    saved_num = save(filtered_books)
+
+    # Sending "Success Message"
+    print("Saved", saved_num, "books in books.csv")
